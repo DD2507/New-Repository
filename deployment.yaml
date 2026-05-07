@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-rollback-app
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: auto-rollback-app
+
+  template:
+    metadata:
+      labels:
+        app: auto-rollback-app
+
+    spec:
+      containers:
+      - name: auto-rollback-app
+        image: auto-rollback-app:v1
+        imagePullPolicy: Never
+
+        ports:
+        - containerPort: 5000
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
