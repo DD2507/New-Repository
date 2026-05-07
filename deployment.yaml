@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: auto-rollback-app
-        image: auto-rollback-app:broken
+        image: auto-rollback-app:v1
         imagePullPolicy: Never
 
         ports:

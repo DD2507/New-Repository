@@ -1,4 +1,4 @@
-from flask import FlaskBroken
+from flask import Flask
 import os
 
 app = Flask(__name__)
