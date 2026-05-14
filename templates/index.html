@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Update Manager</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header-card">
+        <h1>🚀 DevOps Update Manager</h1>
+        <p>Enterprise CI/CD Deployment & Rollback Platform</p>
+    </div>
+
+    <div class="update-card">
+
+        <div class="version-section">
+            <h2>New Software Update Available</h2>
+
+            <div class="version-box">
+                <span>Current Version</span>
+                <strong>v1</strong>
+            </div>
+
+            <div class="version-box">
+                <span>Available Version</span>
+                <strong>v2</strong>
+            </div>
+        </div>
+
+        <button id="updateBtn">Update Software</button>
+
+        <div class="progress-section">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="workflow-card">
+
+        <h2>Deployment Workflow</h2>
+
+        <div class="step" id="step1">
+            <span class="icon">⏳</span>
+            Checking GitHub Repository
+        </div>
+
+        <div class="step" id="step2">
+            <span class="icon">⏳</span>
+            Pulling Latest Source Code
+        </div>
+
+        <div class="step" id="step3">
+            <span class="icon">⏳</span>
+            Building Docker Image
+        </div>
+
+        <div class="step" id="step4">
+            <span class="icon">⏳</span>
+            Deploying to Kubernetes
+        </div>
+
+        <div class="step" id="step5">
+            <span class="icon">⏳</span>
+            Verifying Deployment Health
+        </div>
+
+        <div class="step" id="step6">
+            <span class="icon">⏳</span>
+            Rollback Recovery
+        </div>
+
+    </div>
+
+    <div class="status-card" id="finalStatus">
+        Waiting for deployment...
+    </div>
+
+</div>
+
+<script>
+
+const updateBtn = document.getElementById("updateBtn");
+const progressFill = document.getElementById("progressFill");
+const finalStatus = document.getElementById("finalStatus");
+
+const steps = [
+    document.getElementById("step1"),
+    document.getElementById("step2"),
+    document.getElementById("step3"),
+    document.getElementById("step4"),
+    document.getElementById("step5")
+];
+
+updateBtn.addEventListener("click", async () => {
+
+    updateBtn.disabled = true;
+
+    progressFill.style.width = "0%";
+
+    finalStatus.className = "status-card";
+    finalStatus.innerHTML = "🚀 Triggering Jenkins Pipeline...";
+
+    try {
+
+        const response = await fetch("/trigger-update", {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+
+            for (let i = 0; i < steps.length; i++) {
+
+                await new Promise(resolve => setTimeout(resolve, 1200));
+
+                steps[i].classList.add("success-step");
+                steps[i].querySelector(".icon").innerHTML = "✔";
+
+                progressFill.style.width = `${(i + 1) * 20}%`;
+            }
+
+            finalStatus.classList.add("success-status");
+            finalStatus.innerHTML = "✅ Deployment Successful";
+
+        } else {
+
+            document.getElementById("step5").classList.add("failed-step");
+            document.getElementById("step5").querySelector(".icon").innerHTML = "✖";
+
+            document.getElementById("step6").classList.add("rollback-step");
+            document.getElementById("step6").querySelector(".icon").innerHTML = "↺";
+
+            finalStatus.classList.add("failed-status");
+            finalStatus.innerHTML = "❌ Deployment Failed - Rollback Triggered";
+        }
+
+    } catch (error) {
+
+        finalStatus.classList.add("failed-status");
+        finalStatus.innerHTML = "❌ Failed to Connect to Backend";
+    }
+
+    updateBtn.disabled = false;
+
+});
+
+</script>
+
+</body>
+</html>
