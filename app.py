@@ -18,11 +18,21 @@ def home():
 @app.route("/trigger-update", methods=["POST"])
 def trigger_update():
 
-    build_url = f"{JENKINS_URL}/job/{JOB_NAME}/build"
-
     try:
 
+        # Get current last build number
+        info_url = f"{JENKINS_URL}/job/{JOB_NAME}/api/json"
+
+        job_info = requests.get(
+            info_url,
+            auth=(USERNAME, API_TOKEN)
+        ).json()
+
+        last_build_number = job_info["nextBuildNumber"]
+
         # Trigger Jenkins build
+        build_url = f"{JENKINS_URL}/job/{JOB_NAME}/build"
+
         response = requests.post(
             build_url,
             auth=(USERNAME, API_TOKEN)
@@ -36,27 +46,26 @@ def trigger_update():
 
         import time
 
-        # Wait for Jenkins to start build
-        time.sleep(5)
+        build_api = f"{JENKINS_URL}/job/{JOB_NAME}/{last_build_number}/api/json"
 
-        # Get latest build info
-        api_url = f"{JENKINS_URL}/job/{JOB_NAME}/lastBuild/api/json"
+        # Wait for build to start
+        time.sleep(5)
 
         while True:
 
             build_info = requests.get(
-                api_url,
+                build_api,
                 auth=(USERNAME, API_TOKEN)
             ).json()
 
-            building = build_info["building"]
-
-            if not building:
+            if not build_info["building"]:
                 break
 
             time.sleep(3)
 
         result = build_info["result"]
+
+        print("BUILD RESULT:", result)
 
         if result == "SUCCESS":
 
@@ -74,10 +83,13 @@ def trigger_update():
 
     except Exception as e:
 
+        print("ERROR:", str(e))
+
         return jsonify({
             "status": "failed",
             "message": str(e)
         }), 500
+    
 
 @app.route("/health")
 def health():
