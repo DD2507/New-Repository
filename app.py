@@ -20,17 +20,21 @@ def trigger_update():
 
     try:
 
-        # Get current last build number
+        import time
+
+        # Get next build number
         info_url = f"{JENKINS_URL}/job/{JOB_NAME}/api/json"
 
-        job_info = requests.get(
+        job_info_response = requests.get(
             info_url,
             auth=(USERNAME, API_TOKEN)
-        ).json()
+        )
 
-        last_build_number = job_info["nextBuildNumber"]
+        job_info = job_info_response.json()
 
-        # Trigger Jenkins build
+        build_number = job_info["nextBuildNumber"]
+
+        # Trigger build
         build_url = f"{JENKINS_URL}/job/{JOB_NAME}/build"
 
         response = requests.post(
@@ -44,26 +48,36 @@ def trigger_update():
                 "message": "Failed to trigger Jenkins"
             }), 500
 
-        import time
+        # Wait for Jenkins to create build
+        time.sleep(10)
 
-        build_api = f"{JENKINS_URL}/job/{JOB_NAME}/{last_build_number}/api/json"
-
-        # Wait for build to start
-        time.sleep(5)
+        build_api = f"{JENKINS_URL}/job/{JOB_NAME}/{build_number}/api/json"
 
         while True:
 
-            build_info = requests.get(
+            build_response = requests.get(
                 build_api,
                 auth=(USERNAME, API_TOKEN)
-            ).json()
+            )
 
-            if not build_info["building"]:
+            # Jenkins may not have build ready yet
+            if build_response.status_code != 200:
+                time.sleep(3)
+                continue
+
+            try:
+                build_info = build_response.json()
+            except:
+                time.sleep(3)
+                continue
+
+            # Wait until build completes
+            if not build_info.get("building", False):
                 break
 
             time.sleep(3)
 
-        result = build_info["result"]
+        result = build_info.get("result", "FAILURE")
 
         print("BUILD RESULT:", result)
 
@@ -89,8 +103,6 @@ def trigger_update():
             "status": "failed",
             "message": str(e)
         }), 500
-    
-
 @app.route("/health")
 def health():
     return "OK", 200
