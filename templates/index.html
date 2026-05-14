@@ -91,21 +91,49 @@ const updateBtn = document.getElementById("updateBtn");
 const progressFill = document.getElementById("progressFill");
 const finalStatus = document.getElementById("finalStatus");
 
-const steps = [
-    document.getElementById("step1"),
-    document.getElementById("step2"),
-    document.getElementById("step3"),
-    document.getElementById("step4"),
-    document.getElementById("step5")
-];
+const step1 = document.getElementById("step1");
+const step2 = document.getElementById("step2");
+const step3 = document.getElementById("step3");
+const step4 = document.getElementById("step4");
+const step5 = document.getElementById("step5");
+const step6 = document.getElementById("step6");
+
+function resetSteps() {
+
+    const allSteps = [step1, step2, step3, step4, step5, step6];
+
+    allSteps.forEach(step => {
+
+        step.classList.remove(
+            "success-step",
+            "failed-step",
+            "rollback-step"
+        );
+
+        step.querySelector(".icon").innerHTML = "⏳";
+    });
+
+    progressFill.style.width = "0%";
+
+    finalStatus.className = "status-card";
+}
+
+async function completeStep(step, percent) {
+
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    step.classList.add("success-step");
+    step.querySelector(".icon").innerHTML = "✔";
+
+    progressFill.style.width = percent + "%";
+}
 
 updateBtn.addEventListener("click", async () => {
 
     updateBtn.disabled = true;
 
-    progressFill.style.width = "0%";
+    resetSteps();
 
-    finalStatus.className = "status-card";
     finalStatus.innerHTML = "🚀 Triggering Jenkins Pipeline...";
 
     try {
@@ -116,28 +144,29 @@ updateBtn.addEventListener("click", async () => {
 
         const data = await response.json();
 
+        await completeStep(step1, 20);
+        await completeStep(step2, 40);
+        await completeStep(step3, 60);
+        await completeStep(step4, 80);
+
         if (data.status === "success") {
 
-            for (let i = 0; i < steps.length; i++) {
-
-                await new Promise(resolve => setTimeout(resolve, 1200));
-
-                steps[i].classList.add("success-step");
-                steps[i].querySelector(".icon").innerHTML = "✔";
-
-                progressFill.style.width = `${(i + 1) * 20}%`;
-            }
+            await completeStep(step5, 100);
 
             finalStatus.classList.add("success-status");
             finalStatus.innerHTML = "✅ Deployment Successful";
 
         } else {
 
-            document.getElementById("step5").classList.add("failed-step");
-            document.getElementById("step5").querySelector(".icon").innerHTML = "✖";
+            await new Promise(resolve => setTimeout(resolve, 1200));
 
-            document.getElementById("step6").classList.add("rollback-step");
-            document.getElementById("step6").querySelector(".icon").innerHTML = "↺";
+            step5.classList.add("failed-step");
+            step5.querySelector(".icon").innerHTML = "✖";
+
+            await new Promise(resolve => setTimeout(resolve, 1200));
+
+            step6.classList.add("rollback-step");
+            step6.querySelector(".icon").innerHTML = "↺";
 
             finalStatus.classList.add("failed-status");
             finalStatus.innerHTML = "❌ Deployment Failed - Rollback Triggered";

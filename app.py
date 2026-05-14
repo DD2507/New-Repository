@@ -1,13 +1,15 @@
+from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify
 import requests
 import os
+load_dotenv()
 
 app = Flask(__name__)
 
 JENKINS_URL = "http://localhost:9090"
 JOB_NAME = "auto-rollback-pipeline"
 USERNAME = "dhrupad"
-API_TOKEN = "1150c13ed47776caf8dd6aef02f2c008a7"
+API_TOKEN = os.getenv("JENKINS_API_TOKEN")
 
 @app.route("/")
 def home():
@@ -20,28 +22,57 @@ def trigger_update():
 
     try:
 
+        # Trigger Jenkins build
         response = requests.post(
             build_url,
             auth=(USERNAME, API_TOKEN)
         )
 
-        print("STATUS:", response.status_code)
-        print("RESPONSE:", response.text)
+        if response.status_code not in [200, 201]:
+            return jsonify({
+                "status": "failed",
+                "message": "Failed to trigger Jenkins"
+            }), 500
 
-        if response.status_code in [200, 201]:
+        import time
+
+        # Wait for Jenkins to start build
+        time.sleep(5)
+
+        # Get latest build info
+        api_url = f"{JENKINS_URL}/job/{JOB_NAME}/lastBuild/api/json"
+
+        while True:
+
+            build_info = requests.get(
+                api_url,
+                auth=(USERNAME, API_TOKEN)
+            ).json()
+
+            building = build_info["building"]
+
+            if not building:
+                break
+
+            time.sleep(3)
+
+        result = build_info["result"]
+
+        if result == "SUCCESS":
+
             return jsonify({
                 "status": "success",
-                "message": "Jenkins pipeline triggered successfully"
+                "message": "Deployment Successful"
             })
 
-        return jsonify({
-            "status": "failed",
-            "message": f"Jenkins returned status {response.status_code}"
-        }), 500
+        else:
+
+            return jsonify({
+                "status": "failed",
+                "message": "Deployment Failed - Rollback Triggered"
+            })
 
     except Exception as e:
-
-        print("ERROR:", str(e))
 
         return jsonify({
             "status": "failed",
